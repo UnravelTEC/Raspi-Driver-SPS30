@@ -81,6 +81,7 @@ def readNBytes(n):
     eprint("error: read bytes didnt return " + str(n) + "B")
     return False
 
+# takes an array of bytes (integer-array)
 def i2cWrite(data):
   try:
     pi.i2c_write_device(h, data)
@@ -90,9 +91,13 @@ def i2cWrite(data):
   return True
 
 def readFromAddr(LowB,HighB,nBytes):
-  i2cWrite([LowB, HighB])
-  data = readNBytes(nBytes)
-  return data
+  for amount_tries in range(3):
+    i2cWrite([LowB, HighB])
+    data = readNBytes(nBytes)
+    if data:
+      return data
+    eprint("error in readFromAddr: " + hex(LowB) + hex(HighB) + " " + nBytes + "B did return Nothing")
+  return False
 
 def readArticleCode():
   data = readFromAddr(0xD0,0x25,47)
@@ -106,8 +111,8 @@ def readArticleCode():
       acode += chr(currentByte) + '|'
     else:
       crcs += str(currentByte) + '.'
-  print(acode)
-  print(crcs)
+  print('Article code: "' + acode + '"')
+ # print(crcs)
 
 def readSerialNr():
   data = readFromAddr(0xD0,0x33,47)
@@ -124,15 +129,27 @@ def readSerialNr():
 
 def readCleaningInterval():
   data = readFromAddr(0x80,0x04,6)
-  interval = data[4] + (data[3] << 8) + (data[1] << 16) + (data[0] << 24)
-  print('interval: ' + str(data[0]) + ' ' + str(data[1]) + ' ' + str(data[3])+ ' ' + str(data[4]))
-  print('interval: ' + str(interval))
+  if data and len(data):
+    interval = data[4] + (data[3] << 8) + (data[1] << 16) + (data[0] << 24)
+    print('interval: ' + str(data[0]) + ' ' + str(data[1]) + ' ' + str(data[3])+ ' ' + str(data[4]))
+    print('interval: ' + str(interval))
 
+def startMeasurement():
+  i2cWrite([0x00, 0x10, 0x03, 0x00, calcCRC([0x03,0x00])])
 
+def stopMeasurement():
+  i2cWrite([0x01, 0x04])
 
 readArticleCode()
 readSerialNr()
 readCleaningInterval()
+
+startMeasurement()
+
+time.sleep(3)
+
+stopMeasurement()
+
 exit(1)
 
 def readWord():
@@ -153,11 +170,6 @@ def readWord():
   else:
     eprint("error: read3B didnt return 3B")
     return False
-
-
-
-
-
 
 def read_meas_interval():
   ret = i2cWrite([0x46, 0x00])
