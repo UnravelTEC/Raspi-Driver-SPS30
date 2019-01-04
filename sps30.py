@@ -130,8 +130,8 @@ def readSerialNr():
 def readCleaningInterval():
   data = readFromAddr(0x80,0x04,6)
   if data and len(data):
-    interval = data[4] + (data[3] << 8) + (data[1] << 16) + (data[0] << 24)
-    print('interval: ' + str(data[0]) + ' ' + str(data[1]) + ' ' + str(data[3])+ ' ' + str(data[4]))
+    interval = calcInteger(data)
+    #print('interval: ' + str(data[0]) + ' ' + str(data[1]) + ' ' + str(data[3])+ ' ' + str(data[4]))
     print('interval: ' + str(interval))
 
 def startMeasurement():
@@ -140,13 +140,43 @@ def startMeasurement():
 def stopMeasurement():
   i2cWrite([0x01, 0x04])
 
+def readDataReady():
+  data = readFromAddr(0x02, 0x02,3)
+  if data[1]:
+    print ("data ready")
+    return True
+  else:
+    print ("data not ready")
+    return False
+
+def calcInteger(sixBArray):
+  integer = sixBArray[4] + (sixBArray[3] << 8) + (sixBArray[1] << 16) + (sixBArray[0] << 24)
+  return integer
+
+# TODO calc to float!
+def readPMValues():
+  data = readFromAddr(0x03,0x00,59)
+  print("pm1_ug " + str(calcInteger(data)))
+  print("pm2.5_ug: " + str(calcInteger(data[6:12])))
+  print("pm4_ug: " + str(calcInteger(data[12:18])))
+  print("pm10_ug: " + str(calcInteger(data[18:24])))
+  print("pm0.5_count: " + str(calcInteger(data[24:30])))
+  print("pm1_count: " + str(calcInteger(data[30:36])))
+  print("pm2.5_count: " + str(calcInteger(data[36:42])))
+  print("pm4_count: " + str(calcInteger(data[42:48])))
+  print("pm10_count: " + str(calcInteger(data[48:54])))
+  print("pm_typ: " + str(calcInteger(data[54:60])))
+
+
 readArticleCode()
 readSerialNr()
 readCleaningInterval()
 
 startMeasurement()
+while not readDataReady():
+  time.sleep(0.5)
 
-time.sleep(3)
+readPMValues()
 
 stopMeasurement()
 
