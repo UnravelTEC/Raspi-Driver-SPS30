@@ -122,9 +122,17 @@ def readSerialNr():
       snr += chr(currentByte)
   print('Serial number: ' + snr)
 
+def readCleaningInterval():
+  data = readFromAddr(0x80,0x04,6)
+  interval = data[4] + (data[3] << 8) + (data[1] << 16) + (data[0] << 24)
+  print('interval: ' + str(data[0]) + ' ' + str(data[1]) + ' ' + str(data[3])+ ' ' + str(data[4]))
+  print('interval: ' + str(interval))
+
+
 
 readArticleCode()
 readSerialNr()
+readCleaningInterval()
 exit(1)
 
 def readWord():
