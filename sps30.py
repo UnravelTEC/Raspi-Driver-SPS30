@@ -33,18 +33,17 @@ import crcmod # aptitude install python-crcmod
 def eprint(*args, **kwargs):
   print(*args, file=sys.stderr, **kwargs)
 
+LOGFILE = '/run/sps30'
 
-
-PIGPIO_HOST = '::1'
 PIGPIO_HOST = '127.0.0.1'
+I2C_SLAVE = 0x69
+I2C_BUS = 1
 
 pi = pigpio.pi(PIGPIO_HOST)
 if not pi.connected:
   eprint("no connection to pigpio daemon at " + PIGPIO_HOST + ".")
   exit(1)
 
-I2C_SLAVE = 0x69
-I2C_BUS = 1
 
 try:
   pi.i2c_close(0)
@@ -159,16 +158,16 @@ def calcFloat(sixBArray):
   return first
 
 def printPrometheus(data):
-  print("pm0.5_count %f" % calcFloat(data[24:30]))
-  print("pm1_ug %f" % calcFloat(data))
-  print("pm2.5_ug %f" % calcFloat(data[6:12]))
-  print("pm4_ug %f" % calcFloat(data[12:18]))
-  print("pm10_ug %f" % calcFloat(data[18:24]))
-  print("pm1_count %f" % calcFloat(data[30:36]))
-  print("pm2.5_count %f" % calcFloat(data[36:42]))
-  print("pm4_count %f" % calcFloat(data[42:48]))
-  print("pm10_count %f" % calcFloat(data[48:54]))
-  print("pm_typ %f" % calcFloat(data[54:60]))
+  print('particulate_matter_ppcm3{size="pm0.5",sensor="SPS30"} %f' % calcFloat(data[24:30]))
+  print('particulate_matter_ppcm3{size="pm1",sensor="SPS30"} %f' % calcFloat(data[30:36]))
+  print('particulate_matter_ppcm3{size="pm2.5",sensor="SPS30"} %f' % calcFloat(data[36:42]))
+  print('particulate_matter_ppcm3{size="pm4",sensor="SPS30"} %f' % calcFloat(data[42:48]))
+  print('particulate_matter_ppcm3{size="pm10",sensor="SPS30"} %f' % calcFloat(data[48:54]))
+  print('particulate_matter_ugpm3{size="pm1",sensor="SPS30"} %f' % calcFloat(data))
+  print('particulate_matter_ugpm3{size="pm2.5",sensor="SPS30"} %f' % calcFloat(data[6:12]))
+  print('particulate_matter_ugpm3{size="pm4",sensor="SPS30"} %f' % calcFloat(data[12:18]))
+  print('particulate_matter_ugpm3{size="pm10",sensor="SPS30"} %f' % calcFloat(data[18:24]))
+  print('particulate_matter_typpartsize_um{sensor="SPS30"} %f' % calcFloat(data[54:60]))
 
 def printHuman(data):
   print("pm0.5 count: %f" % calcFloat(data[24:30]))
