@@ -96,7 +96,7 @@ def readFromAddr(LowB,HighB,nBytes):
     data = readNBytes(nBytes)
     if data:
       return data
-    eprint("error in readFromAddr: " + hex(LowB) + hex(HighB) + " " + nBytes + "B did return Nothing")
+    eprint("error in readFromAddr: " + hex(LowB) + hex(HighB) + " " + str(nBytes) + "B did return Nothing")
   return False
 
 def readArticleCode():
@@ -111,7 +111,7 @@ def readArticleCode():
       acode += chr(currentByte) + '|'
     else:
       crcs += str(currentByte) + '.'
-  print('Article code: "' + acode + '"')
+  eprint('Article code: "' + acode + '"')
  # print(crcs)
 
 def readSerialNr():
@@ -125,14 +125,13 @@ def readSerialNr():
       if i != 0:
         snr += '-'
       snr += chr(currentByte)
-  print('Serial number: ' + snr)
+  eprint('Serial number: ' + snr)
 
 def readCleaningInterval():
   data = readFromAddr(0x80,0x04,6)
   if data and len(data):
     interval = calcInteger(data)
-    #print('interval: ' + str(data[0]) + ' ' + str(data[1]) + ' ' + str(data[3])+ ' ' + str(data[4]))
-    print('interval: ' + str(interval))
+    eprint('cleaning interval:', str(interval), 's')
 
 def startMeasurement():
   i2cWrite([0x00, 0x10, 0x03, 0x00, calcCRC([0x03,0x00])])
@@ -143,159 +142,61 @@ def stopMeasurement():
 def readDataReady():
   data = readFromAddr(0x02, 0x02,3)
   if data[1]:
-    print ("data ready")
+    #print ("data ready")
     return True
   else:
-    print ("data not ready")
+    #print ("data not ready")
     return False
 
 def calcInteger(sixBArray):
   integer = sixBArray[4] + (sixBArray[3] << 8) + (sixBArray[1] << 16) + (sixBArray[0] << 24)
   return integer
 
-# TODO calc to float!
+def calcFloat(sixBArray):
+  struct_float = struct.pack('>BBBB', sixBArray[0], sixBArray[1], sixBArray[3], sixBArray[4])
+  float_values = struct.unpack('>f', struct_float)
+  first = float_values[0]
+  return first
+
+def printPrometheus(data):
+  print("pm0.5_count %f" % calcFloat(data[24:30]))
+  print("pm1_ug %f" % calcFloat(data))
+  print("pm2.5_ug %f" % calcFloat(data[6:12]))
+  print("pm4_ug %f" % calcFloat(data[12:18]))
+  print("pm10_ug %f" % calcFloat(data[18:24]))
+  print("pm1_count %f" % calcFloat(data[30:36]))
+  print("pm2.5_count %f" % calcFloat(data[36:42]))
+  print("pm4_count %f" % calcFloat(data[42:48]))
+  print("pm10_count %f" % calcFloat(data[48:54]))
+  print("pm_typ %f" % calcFloat(data[54:60]))
+
+def printHuman(data):
+  print("pm0.5 count: %f" % calcFloat(data[24:30]))
+  print("pm1   count: {0:.3f} ug: {1:.3f}".format( calcFloat(data[30:36]), calcFloat(data) ) )
+  print("pm2.5 count: {0:.3f} ug: {1:.3f}".format( calcFloat(data[36:42]), calcFloat(data[6:12]) ) )
+  print("pm4   count: {0:.3f} ug: {1:.3f}".format( calcFloat(data[42:48]), calcFloat(data[12:18]) ) )
+  print("pm10  count: {0:.3f} ug: {1:.3f}".format( calcFloat(data[48:54]), calcFloat(data[18:24]) ) )
+  print("pm_typ: %f" % calcFloat(data[54:60]))
+
+
 def readPMValues():
   data = readFromAddr(0x03,0x00,59)
-  print("pm1_ug " + str(calcInteger(data)))
-  print("pm2.5_ug: " + str(calcInteger(data[6:12])))
-  print("pm4_ug: " + str(calcInteger(data[12:18])))
-  print("pm10_ug: " + str(calcInteger(data[18:24])))
-  print("pm0.5_count: " + str(calcInteger(data[24:30])))
-  print("pm1_count: " + str(calcInteger(data[30:36])))
-  print("pm2.5_count: " + str(calcInteger(data[36:42])))
-  print("pm4_count: " + str(calcInteger(data[42:48])))
-  print("pm10_count: " + str(calcInteger(data[48:54])))
-  print("pm_typ: " + str(calcInteger(data[54:60])))
-
+  #printHuman(data)
+  printPrometheus(data)
 
 readArticleCode()
 readSerialNr()
 readCleaningInterval()
 
 startMeasurement()
-while not readDataReady():
-  time.sleep(0.5)
 
-readPMValues()
+for count in range(10):
+  while not readDataReady():
+    time.sleep(0.5)
+  readPMValues()
 
 stopMeasurement()
 
-exit(1)
-
-def readWord():
-  try:
-		(count, data) = pi.i2c_read_device(h, 3)
-  except:
-    eprint("error: i2c_read 3b failed")
-    exit(1)
-
-  if count == 3:
-    b1 = data[0]
-    b2 = data[1]
-    if data[2] == calcCRC([b1,b2]):
-      return [ b1, b2 ]
-    else:
-      eprint("error: checksum wrong")
-      return False
-  else:
-    eprint("error: read3B didnt return 3B")
-    return False
-
-def read_meas_interval():
-  ret = i2cWrite([0x46, 0x00])
-  if ret == -1:
-    return -1
-
-  try:
-    (count, data) = pi.i2c_read_device(h, 3)
-  except:
-    eprint("error: i2c_read failed")
-    exit(1)
-
-  if count == 3:
-    if len(data) == 3:
-      interval = int(data[0])*256 + int(data[1])
-      #print "measurement interval: " + str(interval) + "s, checksum " + str(data[2])
-      return interval
-    else:
-      eprint("error: no array len 3 returned, instead " + str(len(data)) + "type: " + str(type(data)))
-  else:
-    "error: read measurement interval didnt return 3B"
-  
-  return -1
-
-read_meas_result = read_meas_interval()
-if read_meas_result == -1:
-  exit(1)
-
-if read_meas_result != 2:
-# if not every 2s, set it
-  eprint("setting interval to 2")
-  ret = i2cWrite([0x46, 0x00, 0x00, 0x02, 0xE3])
-  if ret == -1:
-    exit(1)
-  read_meas_interval()
-
-
-#trigger cont meas
-# TODO read out current pressure value
-pressure_mbar = 972
-LSB = 0xFF & pressure_mbar
-MSB = 0xFF & (pressure_mbar >> 8)
-#print ("MSB: " + hex(MSB) + " LSB: " + hex(LSB))
-#pressure_re = LSB + (MSB * 256)
-#print("press " + str(pressure_re))
-pressure = [MSB, LSB]
-
-pressure_array = ''.join(chr(x) for x in [pressure[0], pressure[1]])
-#pressure_array = ''.join(chr(x) for x in [0xBE, 0xEF]) # use for testing crc, should be 0x92
-#print pressure_array
-
-f_crc8 = crcmod.mkCrcFun(0x131, 0xFF, False, 0x00)
-
-crc8 = f_crc8(pressure_array) # for pressure 0, should be 0x81
-# print "CRC: " + hex(crc8)
-i2cWrite([0x00, 0x10, pressure[0], pressure[1], crc8])
-
-# read ready status
-while True:
-  ret = i2cWrite([0x02, 0x02])
-  if ret == -1:
-    exit(1)
-
-  data = read_n_bytes(3)
-  if data == False:
-    time.sleep(0.1)
-    continue
-
-  if data[1] == 1:
-    #print "data ready"
-    break
-  else:
-    eprint(".")
-    time.sleep(0.1)
-
-#read measurement
-i2cWrite([0x03, 0x00])
-data = read_n_bytes(18)
-  
-#print "CO2: "  + str(data[0]) +" "+ str(data[1]) +" "+ str(data[3]) +" "+ str(data[4])
-
-struct_co2 = struct.pack('>BBBB', data[0], data[1], data[3], data[4])
-float_co2 = struct.unpack('>f', struct_co2)
-
-struct_T = struct.pack('>BBBB', data[6], data[7], data[9], data[10])
-float_T = struct.unpack('>f', struct_T)
-
-struct_rH = struct.pack('>BBBB', data[12], data[13], data[15], data[16])
-float_rH = struct.unpack('>f', struct_rH)
-
-if float_co2 > 0.0:
-  print("scd30_co2 %f" % float_co2)
-
-print("scd30_T %f" % float_T)
-
-if float_rH > 0.0:
-  print("scd30_rH %f" % float_rH)
-
 pi.i2c_close(h)
+
+exit(1)
