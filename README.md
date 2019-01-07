@@ -21,7 +21,7 @@ aptitude install python-crcmod
 
 ### Pigpiod
 
-As the SCD30 needs complex i2c-commands, the Linux standard i2c-dev doesn't work. A working alternative is pigpiod.
+As the SPS30 needs complex i2c-commands, the Linux standard i2c-dev doesn't work. A working alternative is pigpiod.
 
 ```
 aptitude install pigpio python-pigpio
@@ -39,11 +39,11 @@ pigs hwver
 ## Run program
 
 ```
-python scd30.py
+python sps30.py
 ```
 
 ## Installation
 
 To install it as a background service run ./install.sh (install dependencies, e.g. via apt, first).
 
-This service writes a file - suited for scraping by prometheus - (onto ramdisk on /run/sps011) and updates it every second.
+This service writes a file - suited for scraping by prometheus - (onto ramdisk on /run/sps30) and updates it every second.
