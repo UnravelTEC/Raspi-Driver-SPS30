@@ -41,11 +41,11 @@ I2C_SLAVE = 0x69
 I2C_BUS = 1
 
 def exit_gracefully(a,b):
-	print("exit")
-	stopMeasurement()
-	os.path.isfile(LOGFILE) and os.access(LOGFILE, os.W_OK) and os.remove(LOGFILE)
-	pi.i2c_close(h)
-	exit(0)
+  print("exit")
+  stopMeasurement()
+  os.path.isfile(LOGFILE) and os.access(LOGFILE, os.W_OK) and os.remove(LOGFILE)
+  pi.i2c_close(h)
+  exit(0)
 
 signal.signal(signal.SIGINT, exit_gracefully)
 signal.signal(signal.SIGTERM, exit_gracefully)
@@ -120,7 +120,7 @@ def readArticleCode():
       acode += chr(currentByte) + '|'
     else:
       crcs += str(currentByte) + '.'
-  eprint('Article code: "' + acode + '"')
+  print('Article code: "' + acode + '"')
  # print(crcs)
 
 def readSerialNr():
@@ -134,13 +134,13 @@ def readSerialNr():
       if i != 0:
         snr += '-'
       snr += chr(currentByte)
-  eprint('Serial number: ' + snr)
+  print('Serial number: ' + snr)
 
 def readCleaningInterval():
   data = readFromAddr(0x80,0x04,6)
   if data and len(data):
     interval = calcInteger(data)
-    eprint('cleaning interval:', str(interval), 's')
+    print('cleaning interval:', str(interval), 's')
 
 def startMeasurement():
   i2cWrite([0x00, 0x10, 0x03, 0x00, calcCRC([0x03,0x00])])
@@ -178,7 +178,7 @@ def printPrometheus(data):
   output_string += 'particulate_matter_ugpm3{{size="pm4",sensor="SPS30"}} {0:.8f}\n'.format( calcFloat(data[12:18]))
   output_string += 'particulate_matter_ugpm3{{size="pm10",sensor="SPS30"}} {0:.8f}\n'.format( calcFloat(data[18:24]))
   output_string += 'particulate_matter_typpartsize_um{{sensor="SPS30"}} {0:.8f}\n'.format( calcFloat(data[54:60]))
-  print(output_string)
+  # print(output_string)
   logfilehandle = open(LOGFILE, "w",1)
   logfilehandle.write(output_string)
   logfilehandle.close()
@@ -196,12 +196,11 @@ def readPMValues():
   data = readFromAddr(0x03,0x00,59)
   #printHuman(data)
   printPrometheus(data)
+  #print('.',end='')
 
 
 if len(sys.argv) > 1 and sys.argv[1] == "stop":
   exit_gracefully(False,False)
-
-
 
 readArticleCode()
 readSerialNr()
@@ -209,13 +208,9 @@ readCleaningInterval()
 
 startMeasurement()
 
-for count in range(10):
+while True:
   while not readDataReady():
-    time.sleep(0.5)
+    time.sleep(0.1)
+    #print('.',end='')
   readPMValues()
-
-stopMeasurement()
-
-pi.i2c_close(h)
-
-exit(1)
+  time.sleep(0.9)
