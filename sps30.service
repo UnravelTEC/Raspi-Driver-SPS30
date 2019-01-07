@@ -1,0 +1,10 @@
+[Unit]
+Description=SPS30 particulate matter sensor
+
+[Service]
+User=root
+Restart=always
+ExecStart=/usr/local/bin/sps30.py
+
+[Install]
+WantedBy=multi-user.target
