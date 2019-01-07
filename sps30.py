@@ -28,6 +28,7 @@ import time
 import struct
 import sys
 import crcmod # aptitude install python-crcmod
+import os, signal
 
 
 def eprint(*args, **kwargs):
@@ -38,6 +39,15 @@ LOGFILE = '/run/sps30'
 PIGPIO_HOST = '127.0.0.1'
 I2C_SLAVE = 0x69
 I2C_BUS = 1
+
+def exit_gracefully(a,b):
+	print("exit")
+	os.remove(LOGFILE)
+	pi.i2c_close(h)
+	exit(0)
+
+signal.signal(signal.SIGINT, exit_gracefully)
+signal.signal(signal.SIGTERM, exit_gracefully)
 
 pi = pigpio.pi(PIGPIO_HOST)
 if not pi.connected:
@@ -158,16 +168,20 @@ def calcFloat(sixBArray):
   return first
 
 def printPrometheus(data):
-  print('particulate_matter_ppcm3{size="pm0.5",sensor="SPS30"} %f' % calcFloat(data[24:30]))
-  print('particulate_matter_ppcm3{size="pm1",sensor="SPS30"} %f' % calcFloat(data[30:36]))
-  print('particulate_matter_ppcm3{size="pm2.5",sensor="SPS30"} %f' % calcFloat(data[36:42]))
-  print('particulate_matter_ppcm3{size="pm4",sensor="SPS30"} %f' % calcFloat(data[42:48]))
-  print('particulate_matter_ppcm3{size="pm10",sensor="SPS30"} %f' % calcFloat(data[48:54]))
-  print('particulate_matter_ugpm3{size="pm1",sensor="SPS30"} %f' % calcFloat(data))
-  print('particulate_matter_ugpm3{size="pm2.5",sensor="SPS30"} %f' % calcFloat(data[6:12]))
-  print('particulate_matter_ugpm3{size="pm4",sensor="SPS30"} %f' % calcFloat(data[12:18]))
-  print('particulate_matter_ugpm3{size="pm10",sensor="SPS30"} %f' % calcFloat(data[18:24]))
-  print('particulate_matter_typpartsize_um{sensor="SPS30"} %f' % calcFloat(data[54:60]))
+  output_string = 'particulate_matter_ppcm3{{size="pm0.5",sensor="SPS30"}} {0:.8f}\n'.format( calcFloat(data[24:30]))
+  output_string += 'particulate_matter_ppcm3{{size="pm1",sensor="SPS30"}} {0:.8f}\n'.format( calcFloat(data[30:36]))
+  output_string += 'particulate_matter_ppcm3{{size="pm2.5",sensor="SPS30"}} {0:.8f}\n'.format( calcFloat(data[36:42]))
+  output_string += 'particulate_matter_ppcm3{{size="pm4",sensor="SPS30"}} {0:.8f}\n'.format( calcFloat(data[42:48]))
+  output_string += 'particulate_matter_ppcm3{{size="pm10",sensor="SPS30"}} {0:.8f}\n'.format( calcFloat(data[48:54]))
+  output_string += 'particulate_matter_ugpm3{{size="pm1",sensor="SPS30"}} {0:.8f}\n'.format( calcFloat(data))
+  output_string += 'particulate_matter_ugpm3{{size="pm2.5",sensor="SPS30"}} {0:.8f}\n'.format( calcFloat(data[6:12]))
+  output_string += 'particulate_matter_ugpm3{{size="pm4",sensor="SPS30"}} {0:.8f}\n'.format( calcFloat(data[12:18]))
+  output_string += 'particulate_matter_ugpm3{{size="pm10",sensor="SPS30"}} {0:.8f}\n'.format( calcFloat(data[18:24]))
+  output_string += 'particulate_matter_typpartsize_um{{sensor="SPS30"}} {0:.8f}\n'.format( calcFloat(data[54:60]))
+  print(output_string)
+  logfilehandle = open(LOGFILE, "w",1)
+  logfilehandle.write(output_string)
+  logfilehandle.close()
 
 def printHuman(data):
   print("pm0.5 count: %f" % calcFloat(data[24:30]))
