@@ -36,9 +36,14 @@ systemctl restart pigpiod
 pigs hwver
 ```
 
-# Run program
+## Run program
 
 ```
 python scd30.py
 ```
 
+## Installation
+
+To install it as a background service run ./install.sh (install dependencies, e.g. via apt, first).
+
+This service writes a file - suited for scraping by prometheus - (onto ramdisk on /run/sps011) and updates it every second.
