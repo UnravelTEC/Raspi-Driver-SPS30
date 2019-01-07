@@ -3,7 +3,7 @@ Software to read out [Sensirion SPS30](https://www.sensirion.com/en/environmenta
 
 This software is licenced under GPLv3 by [UnravelTEC OG](https://unraveltec.com) (https://unraveltec.com), 2018.
 
-## Prerequsites 
+## Prerequisites
 
 Maximum I2C speed for SPS30 is 100kHz (Default on Raspbian).
 
