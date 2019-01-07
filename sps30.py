@@ -42,7 +42,8 @@ I2C_BUS = 1
 
 def exit_gracefully(a,b):
 	print("exit")
-	os.remove(LOGFILE)
+	stopMeasurement()
+	os.path.isfile(LOGFILE) and os.access(LOGFILE, os.W_OK) and os.remove(LOGFILE)
 	pi.i2c_close(h)
 	exit(0)
 
@@ -69,7 +70,6 @@ except:
 
 
 f_crc8 = crcmod.mkCrcFun(0x131, 0xFF, False, 0x00)
-
 
 def calcCRC(TwoBdataArray):
   byteData = ''.join(chr(x) for x in TwoBdataArray)
@@ -196,6 +196,12 @@ def readPMValues():
   data = readFromAddr(0x03,0x00,59)
   #printHuman(data)
   printPrometheus(data)
+
+
+if len(sys.argv) > 1 and sys.argv[1] == "stop":
+  exit_gracefully(False,False)
+
+
 
 readArticleCode()
 readSerialNr()
