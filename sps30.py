@@ -40,6 +40,8 @@ PIGPIO_HOST = '127.0.0.1'
 I2C_SLAVE = 0x69
 I2C_BUS = 1
 
+DEBUG = True
+
 def exit_gracefully(a,b):
   print("exit")
   stopMeasurement()
@@ -54,6 +56,9 @@ pi = pigpio.pi(PIGPIO_HOST)
 if not pi.connected:
   eprint("no connection to pigpio daemon at " + PIGPIO_HOST + ".")
   exit(1)
+else:
+  if DEBUG:
+    print("connection to pigpio daemon successful")
 
 
 try:
@@ -92,16 +97,18 @@ def readNBytes(n):
 
 # takes an array of bytes (integer-array)
 def i2cWrite(data):
-  try:
-    pi.i2c_write_device(h, data)
-  except:
-    eprint("error: i2c_write failed")
-    return -1
+  #try:
+  pi.i2c_write_device(h, data)
+  #except:
+  #  eprint("error: i2c_write failed")
+  #  return -1
   return True
 
 def readFromAddr(LowB,HighB,nBytes):
   for amount_tries in range(3):
-    i2cWrite([LowB, HighB])
+    ret = i2cWrite([LowB, HighB])
+    if ret != True:
+      continue
     data = readNBytes(nBytes)
     if data:
       return data
@@ -110,6 +117,10 @@ def readFromAddr(LowB,HighB,nBytes):
 
 def readArticleCode():
   data = readFromAddr(0xD0,0x25,47)
+  if data == False:
+    eprint('readArticleCode failed')
+    return False
+
   acode = ''
   crcs = ''
   for i in range(47):
@@ -125,6 +136,10 @@ def readArticleCode():
 
 def readSerialNr():
   data = readFromAddr(0xD0,0x33,47)
+  if data == False:
+    eprint('readSerialNr failed')
+    return False
+
   snr = ''
   for i in range(47):
     if (i % 3) != 2:
@@ -143,14 +158,23 @@ def readCleaningInterval():
     print('cleaning interval:', str(interval), 's')
 
 def startMeasurement():
-  i2cWrite([0x00, 0x10, 0x03, 0x00, calcCRC([0x03,0x00])])
+  ret = -1
+  for i in range(3):
+    ret = i2cWrite([0x00, 0x10, 0x03, 0x00, calcCRC([0x03,0x00])])
+    if ret == True:
+      return True
+    eprint('startMeasurement unsuccessful, next try')
+    time.sleep(0.1)
+  eprint('startMeasurement unsuccessful, giving up')
+  return False
+    
 
 def stopMeasurement():
   i2cWrite([0x01, 0x04])
 
 def readDataReady():
   data = readFromAddr(0x02, 0x02,3)
-  if data[1]:
+  if data and data[1]:
     #print ("data ready")
     return True
   else:
@@ -206,7 +230,7 @@ readArticleCode()
 readSerialNr()
 readCleaningInterval()
 
-startMeasurement()
+startMeasurement() or exit(1)
 
 while True:
   while not readDataReady():
