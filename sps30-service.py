@@ -31,6 +31,7 @@ import crcmod # aptitude install python-crcmod
 import os, signal
 from subprocess import call
 
+# import pprint
 
 def eprint(*args, **kwargs):
   print(*args, file=sys.stderr, **kwargs)
@@ -99,11 +100,12 @@ def readNBytes(n):
 
 # takes an array of bytes (integer-array)
 def i2cWrite(data):
-  #try:
-  pi.i2c_write_device(h, data)
-  #except:
-  #  eprint("error: i2c_write failed")
-  #  return -1
+  try:
+    pi.i2c_write_device(h, data)
+  except Exception as e:
+    eprint("error in i2c_write:", e.__doc__ + ":",  e.value)
+    # pprint.pprint(e.__dict__)
+    return -1
   return True
 
 def readFromAddr(LowB,HighB,nBytes):
@@ -115,6 +117,7 @@ def readFromAddr(LowB,HighB,nBytes):
     if data:
       return data
     eprint("error in readFromAddr: " + hex(LowB) + hex(HighB) + " " + str(nBytes) + "B did return Nothing")
+  eprint("readFromAddr: write tries(3) exceeded")
   return False
 
 def readArticleCode():
@@ -134,7 +137,7 @@ def readArticleCode():
     else:
       crcs += str(currentByte) + '.'
   print('Article code: "' + acode + '"')
- # print(crcs)
+  return True
 
 def readSerialNr():
   data = readFromAddr(0xD0,0x33,47)
@@ -152,6 +155,7 @@ def readSerialNr():
         snr += '-'
       snr += chr(currentByte)
   print('Serial number: ' + snr)
+  return True
 
 def readCleaningInterval():
   data = readFromAddr(0x80,0x04,6)
@@ -169,10 +173,16 @@ def startMeasurement():
     time.sleep(0.1)
   eprint('startMeasurement unsuccessful, giving up')
   return False
-    
 
 def stopMeasurement():
   i2cWrite([0x01, 0x04])
+
+def reset():
+  if DEBUG:
+    print("reset called")
+  i2cWrite([0xd3, 0x04])
+  if DEBUG:
+    print("reset sent")
 
 def readDataReady():
   data = readFromAddr(0x02, 0x02,3)
@@ -233,7 +243,9 @@ def readPMValues():
 if len(sys.argv) > 1 and sys.argv[1] == "stop":
   exit_gracefully(False,False)
 
-readArticleCode()
+reset()
+
+readArticleCode() or exit(1)
 readSerialNr()
 readCleaningInterval()
 
