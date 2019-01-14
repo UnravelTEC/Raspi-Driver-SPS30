@@ -29,12 +29,13 @@ import struct
 import sys
 import crcmod # aptitude install python-crcmod
 import os, signal
+from subprocess import call
 
 
 def eprint(*args, **kwargs):
   print(*args, file=sys.stderr, **kwargs)
 
-LOGFILE = '/run/sps30'
+LOGFILE = '/run/sensors/sps30/last'
 
 PIGPIO_HOST = '127.0.0.1'
 I2C_SLAVE = 0x69
@@ -73,6 +74,7 @@ except:
 	eprint("i2c open failed")
 	exit(1)
 
+call(["mkdir", "-p", "/run/sensors/sps30"])
 
 f_crc8 = crcmod.mkCrcFun(0x131, 0xFF, False, 0x00)
 
@@ -192,6 +194,11 @@ def calcFloat(sixBArray):
   return first
 
 def printPrometheus(data):
+  pm10 = calcFloat(data[18:24])
+  if pm10 == 0:
+    eprint("pm10 == 0; ignoring values")
+    return
+
   output_string = 'particulate_matter_ppcm3{{size="pm0.5",sensor="SPS30"}} {0:.8f}\n'.format( calcFloat(data[24:30]))
   output_string += 'particulate_matter_ppcm3{{size="pm1",sensor="SPS30"}} {0:.8f}\n'.format( calcFloat(data[30:36]))
   output_string += 'particulate_matter_ppcm3{{size="pm2.5",sensor="SPS30"}} {0:.8f}\n'.format( calcFloat(data[36:42]))
@@ -200,7 +207,7 @@ def printPrometheus(data):
   output_string += 'particulate_matter_ugpm3{{size="pm1",sensor="SPS30"}} {0:.8f}\n'.format( calcFloat(data))
   output_string += 'particulate_matter_ugpm3{{size="pm2.5",sensor="SPS30"}} {0:.8f}\n'.format( calcFloat(data[6:12]))
   output_string += 'particulate_matter_ugpm3{{size="pm4",sensor="SPS30"}} {0:.8f}\n'.format( calcFloat(data[12:18]))
-  output_string += 'particulate_matter_ugpm3{{size="pm10",sensor="SPS30"}} {0:.8f}\n'.format( calcFloat(data[18:24]))
+  output_string += 'particulate_matter_ugpm3{{size="pm10",sensor="SPS30"}} {0:.8f}\n'.format( pm10 )
   output_string += 'particulate_matter_typpartsize_um{{sensor="SPS30"}} {0:.8f}\n'.format( calcFloat(data[54:60]))
   # print(output_string)
   logfilehandle = open(LOGFILE, "w",1)
@@ -218,9 +225,9 @@ def printHuman(data):
 
 def readPMValues():
   data = readFromAddr(0x03,0x00,59)
-  #printHuman(data)
   printPrometheus(data)
-  #print('.',end='')
+  if DEBUG:
+    printHuman(data)
 
 
 if len(sys.argv) > 1 and sys.argv[1] == "stop":
