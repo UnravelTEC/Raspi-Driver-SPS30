@@ -47,3 +47,13 @@ python sps30.py
 To install it as a background service run ./install.sh (install dependencies, e.g. via apt, first).
 
 This service writes a file - suited for scraping by prometheus - (onto ramdisk on /run/sps30) and updates it every second.
+
+# Notes
+
+## Stability
+
+When running on a RPi 0W powered by a USB3.0 PC port, (4.8V resulting), the sensor stops reliably working after 60s, and has to be resettet. Use a proper PSU.
+
+## Data credibility
+
+data values in the first 15 seconds while the fan is spinning up are too high, recommended to ignore them.
