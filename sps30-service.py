@@ -31,7 +31,7 @@ import crcmod # aptitude install python-crcmod
 import os, signal
 from subprocess import call
 
-# import pprint
+import pprint
 
 def eprint(*args, **kwargs):
   print(*args, file=sys.stderr, **kwargs)
@@ -54,6 +54,8 @@ def exit_gracefully(a,b):
 signal.signal(signal.SIGINT, exit_gracefully)
 signal.signal(signal.SIGTERM, exit_gracefully)
 
+
+
 pi = pigpio.pi(PIGPIO_HOST)
 if not pi.connected:
   eprint("no connection to pigpio daemon at " + PIGPIO_HOST + ".")
@@ -69,11 +71,15 @@ except:
   if sys.exc_value and str(sys.exc_value) != "'unknown handle'":
     eprint("Unknown error: ", sys.exc_type, ":", sys.exc_value)
 
-try:
-	h = pi.i2c_open(I2C_BUS, I2C_SLAVE)
-except:
-	eprint("i2c open failed")
-	exit(1)
+h = 0
+def i2cOpen():
+  global h
+  try:
+    h = pi.i2c_open(I2C_BUS, I2C_SLAVE)
+  except:
+    eprint("i2c open failed")
+    exit(1)
+i2cOpen()
 
 call(["mkdir", "-p", "/run/sensors/sps30"])
 
@@ -103,8 +109,8 @@ def i2cWrite(data):
   try:
     pi.i2c_write_device(h, data)
   except Exception as e:
+    pprint.pprint(e)
     eprint("error in i2c_write:", e.__doc__ + ":",  e.value)
-    # pprint.pprint(e.__dict__)
     return -1
   return True
 
@@ -112,6 +118,7 @@ def readFromAddr(LowB,HighB,nBytes):
   for amount_tries in range(3):
     ret = i2cWrite([LowB, HighB])
     if ret != True:
+      eprint("readFromAddr: write try unsuccessful, next")
       continue
     data = readNBytes(nBytes)
     if data:
@@ -170,7 +177,7 @@ def startMeasurement():
     if ret == True:
       return True
     eprint('startMeasurement unsuccessful, next try')
-    time.sleep(0.1)
+    bigReset()
   eprint('startMeasurement unsuccessful, giving up')
   return False
 
@@ -180,18 +187,34 @@ def stopMeasurement():
 def reset():
   if DEBUG:
     print("reset called")
-  i2cWrite([0xd3, 0x04])
-  if DEBUG:
-    print("reset sent")
+  for i in range(5):
+    ret = i2cWrite([0xd3, 0x04])
+    if DEBUG:
+      print("reset sent")
+    if ret == True:
+      if DEBUG:
+        print("reset ok")
+      return True
+    eprint('reset unsuccessful, next try in', str(0.2 * i) + 's')
+    time.sleep(0.2 * i)
+  eprint('reset unsuccessful')
+  return False
+
+
 
 def readDataReady():
   data = readFromAddr(0x02, 0x02,3)
+  if data == False:
+    eprint("readDataReady: command unsuccessful")
+    return -1
   if data and data[1]:
-    #print ("data ready")
-    return True
+    if DEBUG:
+      print("✓")
+    return 1
   else:
-    #print ("data not ready")
-    return False
+    if DEBUG:
+      print('.',end='')
+    return 0
 
 def calcInteger(sixBArray):
   integer = sixBArray[4] + (sixBArray[3] << 8) + (sixBArray[1] << 16) + (sixBArray[0] << 24)
@@ -239,21 +262,45 @@ def readPMValues():
   if DEBUG:
     printHuman(data)
 
+def initialize():
+  startMeasurement() or exit(1)
+  time.sleep(0.9)
+
+def bigReset():
+  global h
+  if DEBUG:
+    print("bigReset.")
+  eprint('resetting...',end='')
+  pi.i2c_close(h)
+  time.sleep(0.5)
+  h = pi.i2c_open(I2C_BUS, I2C_SLAVE)
+  time.sleep(0.5)
+  reset()
+  time.sleep(0.1) # note: needed after reset
 
 if len(sys.argv) > 1 and sys.argv[1] == "stop":
   exit_gracefully(False,False)
 
 reset()
+time.sleep(0.1) # note: needed after reset
 
 readArticleCode() or exit(1)
 readSerialNr()
 readCleaningInterval()
 
-startMeasurement() or exit(1)
+initialize()
 
 while True:
-  while not readDataReady():
+  ret = readDataReady()
+  if ret == -1:
+    eprint('resetting...',end='')
+    bigReset()
+    initialize()
+    continue
+
+  if ret == 0:
     time.sleep(0.1)
-    #print('.',end='')
+    continue
+
   readPMValues()
   time.sleep(0.9)
