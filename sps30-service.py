@@ -42,7 +42,14 @@ PIGPIO_HOST = '127.0.0.1'
 I2C_SLAVE = 0x69
 I2C_BUS = 1
 
-DEBUG = True
+DEBUG = False
+
+deviceOnI2C = call("i2cdetect -y 1 0x69 0x69|grep '\--' -q", shell=True) # grep exits 0 if match found
+if deviceOnI2C:
+  print("I2Cdetect found SPS30")
+else:
+  print("SPS30 (0x69) not found on I2C bus")
+  exit(1)
 
 def exit_gracefully(a,b):
   print("exit")
@@ -71,17 +78,20 @@ except:
   if sys.exc_value and str(sys.exc_value) != "'unknown handle'":
     eprint("Unknown error: ", sys.exc_type, ":", sys.exc_value)
 
-h = 0
-def i2cOpen():
-  global h
-  try:
-    h = pi.i2c_open(I2C_BUS, I2C_SLAVE)
-  except:
-    eprint("i2c open failed")
-    exit(1)
-i2cOpen()
+#try:
+h = pi.i2c_open(I2C_BUS, I2C_SLAVE)
+#except:
+#  eprint("i2c open failed")
+#  exit(1)
 
-call(["mkdir", "-p", "/run/sensors/sps30"])
+#def i2cOpen():
+#  global h
+#  try:
+#    h = pi.i2c_open(I2C_BUS, I2C_SLAVE)
+#  except:
+#    eprint("i2c open failed")
+#    exit(1)
+
 
 f_crc8 = crcmod.mkCrcFun(0x131, 0xFF, False, 0x00)
 
@@ -281,10 +291,13 @@ def bigReset():
 if len(sys.argv) > 1 and sys.argv[1] == "stop":
   exit_gracefully(False,False)
 
+call(["mkdir", "-p", "/run/sensors/sps30"])
+
+readArticleCode() or exit(1)
+
 reset()
 time.sleep(0.1) # note: needed after reset
 
-readArticleCode() or exit(1)
 readSerialNr()
 readCleaningInterval()
 
