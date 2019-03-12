@@ -39,7 +39,7 @@ pigs hwver
 ## Run program
 
 ```
-python sps30.py
+python sps30-service.py
 ```
 
 ## Installation
