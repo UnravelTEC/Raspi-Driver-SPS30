@@ -46,7 +46,7 @@ python sps30-service.py
 
 To install it as a background service run ./install.sh (install dependencies, e.g. via apt, first).
 
-This service writes a file - suited for scraping by prometheus - (onto ramdisk on /run/sps30) and updates it every second.
+This service writes a file - suited for scraping by prometheus - (onto ramdisk on /run/sensors/sps30/last) and updates it every second.
 
 # Notes
 
