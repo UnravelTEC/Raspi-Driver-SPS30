@@ -1,5 +1,8 @@
 [Unit]
 Description=SPS30 particulate matter sensor
+After=pigpiod.service
+Requires=pigpiod.service
+
 
 [Service]
 User=root
