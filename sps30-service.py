@@ -25,6 +25,7 @@ from __future__ import print_function
 # cmd ref: http://abyz.me.uk/rpi/pigpio/python.html#i2c_write_byte_data
 import pigpio # aptitude install python-pigpio
 import time
+import math
 import struct
 import sys
 import crcmod # aptitude install python-crcmod
@@ -237,21 +238,35 @@ def calcFloat(sixBArray):
   return first
 
 def printPrometheus(data):
-  pm10 = calcFloat(data[18:24])
-  if pm10 == 0:
-    eprint("pm10 == 0; ignoring values")
-    return
+  sensordata = {
+    'pm1' : calcFloat(data),
+    'pm25' : calcFloat(data[6:12]),
+    'pm4' : calcFloat(data[12:18]),
+    'pm10' : calcFloat(data[18:24]),
+    'pn05' : calcFloat(data[24:30]),
+    'pn1' : calcFloat(data[30:36]),
+    'pn25' : calcFloat(data[36:42]),
+    'pn4' : calcFloat(data[42:48]),
+    'pn10' : calcFloat(data[48:54]),
+    'partsize' : calcFloat(data[54:60])
+  }
 
-  output_string = 'particulate_matter_ppcm3{{size="pm0.5",sensor="SPS30"}} {0:.8f}\n'.format( calcFloat(data[24:30]))
-  output_string += 'particulate_matter_ppcm3{{size="pm1",sensor="SPS30"}} {0:.8f}\n'.format( calcFloat(data[30:36]))
-  output_string += 'particulate_matter_ppcm3{{size="pm2.5",sensor="SPS30"}} {0:.8f}\n'.format( calcFloat(data[36:42]))
-  output_string += 'particulate_matter_ppcm3{{size="pm4",sensor="SPS30"}} {0:.8f}\n'.format( calcFloat(data[42:48]))
-  output_string += 'particulate_matter_ppcm3{{size="pm10",sensor="SPS30"}} {0:.8f}\n'.format( calcFloat(data[48:54]))
-  output_string += 'particulate_matter_ugpm3{{size="pm1",sensor="SPS30"}} {0:.8f}\n'.format( calcFloat(data))
-  output_string += 'particulate_matter_ugpm3{{size="pm2.5",sensor="SPS30"}} {0:.8f}\n'.format( calcFloat(data[6:12]))
-  output_string += 'particulate_matter_ugpm3{{size="pm4",sensor="SPS30"}} {0:.8f}\n'.format( calcFloat(data[12:18]))
-  output_string += 'particulate_matter_ugpm3{{size="pm10",sensor="SPS30"}} {0:.8f}\n'.format( pm10 )
-  output_string += 'particulate_matter_typpartsize_um{{sensor="SPS30"}} {0:.8f}\n'.format( calcFloat(data[54:60]))
+  for key, value in d.iteritems():
+    if value <= 0 or math.isnan(value):
+      eprint(key + " == " + value +" ; ignoring values")
+      return
+
+
+  output_string = 'particulate_matter_ppcm3{{size="pm0.5",sensor="SPS30"}} {0:.8f}\n'.format( sensordata('pn05') )
+  output_string += 'particulate_matter_ppcm3{{size="pm1",sensor="SPS30"}} {0:.8f}\n'.format( sensordata('pn1') )
+  output_string += 'particulate_matter_ppcm3{{size="pm2.5",sensor="SPS30"}} {0:.8f}\n'.format( sensordata('pn25') )
+  output_string += 'particulate_matter_ppcm3{{size="pm4",sensor="SPS30"}} {0:.8f}\n'.format( sensordata('pn4') )
+  output_string += 'particulate_matter_ppcm3{{size="pm10",sensor="SPS30"}} {0:.8f}\n'.format( sensordata('pn10') )
+  output_string += 'particulate_matter_ugpm3{{size="pm1",sensor="SPS30"}} {0:.8f}\n'.format( sensordata('pm1') )
+  output_string += 'particulate_matter_ugpm3{{size="pm2.5",sensor="SPS30"}} {0:.8f}\n'.format( sensordata('pm25') )
+  output_string += 'particulate_matter_ugpm3{{size="pm4",sensor="SPS30"}} {0:.8f}\n'.format( sensordata('pm4') )
+  output_string += 'particulate_matter_ugpm3{{size="pm10",sensor="SPS30"}} {0:.8f}\n'.format( sensordata('pm10') )
+  output_string += 'particulate_matter_typpartsize_um{{sensor="SPS30"}} {0:.8f}\n'.format( sensordata('partsize') )
   # print(output_string)
   logfilehandle = open(LOGFILE, "w",1)
   logfilehandle.write(output_string)
