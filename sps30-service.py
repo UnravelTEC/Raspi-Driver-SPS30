@@ -41,11 +41,12 @@ LOGFILE = '/run/sensors/sps30/last'
 
 PIGPIO_HOST = '127.0.0.1'
 I2C_SLAVE = 0x69
-I2C_BUS = 1
+I2C_BUS = 0
 
 DEBUG = False
+DEBUG = True
 
-deviceOnI2C = call("i2cdetect -y 1 0x69 0x69|grep '\--' -q", shell=True) # grep exits 0 if match found
+deviceOnI2C = call("i2cdetect -y 0 0x69 0x69|grep '\--' -q", shell=True) # grep exits 0 if match found
 if deviceOnI2C:
   print("I2Cdetect found SPS30")
 else:
@@ -198,7 +199,9 @@ def stopMeasurement():
 def reset():
   if DEBUG:
     print("reset called")
-  for i in range(5):
+
+  waits = 0.5
+  for i in range(15):
     ret = i2cWrite([0xd3, 0x04])
     if DEBUG:
       print("reset sent")
@@ -206,8 +209,8 @@ def reset():
       if DEBUG:
         print("reset ok")
       return True
-    eprint('reset unsuccessful, next try in', str(0.2 * i) + 's')
-    time.sleep(0.2 * i)
+    eprint('reset unsuccessful, next try in', str(waits * i) + 's')
+    time.sleep(waits * i)
   eprint('reset unsuccessful')
   return False
 
@@ -251,11 +254,10 @@ def printPrometheus(data):
     'partsize' : calcFloat(data[54:60])
   }
 
-  for key, value in d.iteritems():
+  for key, value in sensordata.iteritems():
     if value <= 0 or math.isnan(value):
-      eprint(key + " == " + value +" ; ignoring values")
+      eprint(key + " == " + str(value) +" ; ignoring values")
       return
-
 
   output_string = 'particulate_matter_ppcm3{{size="pm0.5",sensor="SPS30"}} {0:.8f}\n'.format( sensordata('pn05') )
   output_string += 'particulate_matter_ppcm3{{size="pm1",sensor="SPS30"}} {0:.8f}\n'.format( sensordata('pn1') )
@@ -283,9 +285,9 @@ def printHuman(data):
 
 def readPMValues():
   data = readFromAddr(0x03,0x00,59)
-  printPrometheus(data)
   if DEBUG:
     printHuman(data)
+  printPrometheus(data)
 
 def initialize():
   startMeasurement() or exit(1)
@@ -306,12 +308,19 @@ def bigReset():
 if len(sys.argv) > 1 and sys.argv[1] == "stop":
   exit_gracefully(False,False)
 
+if DEBUG:
+  print("readArticleCode")
+ret = readArticleCode()
+if ret == False:
+  resetret = reset()
+  if resetret == False:
+    exit(1)
+  readArticleCode()
+
 call(["mkdir", "-p", "/run/sensors/sps30"])
 
-readArticleCode() or exit(1)
-
-reset()
-time.sleep(0.1) # note: needed after reset
+#reset()
+#time.sleep(0.1) # note: needed after reset
 
 readSerialNr()
 readCleaningInterval()
