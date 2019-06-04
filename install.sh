@@ -23,8 +23,12 @@ targetdir=/usr/local/bin/
 
 mkdir -p $targetdir
 
-cp sps30-service.py $targetdir && echo "cp sps30-service.py $targetdir OK"
-cp sps30.service /etc/systemd/system/ && echo "cp sps30.service /etc/systemd/system/ OK"
-systemctl enable sps30.service && echo "systemctl enable sps30.service OK"
-systemctl start sps30.service && echo "systemctl start sps30.service OK"
+exe1=sps30-service.py
+serv1=sps30.service
 
+rsync -raxc --info=name $exe1 $targetdir
+
+rsync -raxc --info=name $serv1 /etc/systemd/system/
+
+systemctl enable $serv1 && echo "systemctl enable $serv1 OK"
+systemctl restart $serv1 && echo "systemctl restart $serv1 OK"
