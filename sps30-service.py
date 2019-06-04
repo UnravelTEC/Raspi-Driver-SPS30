@@ -36,6 +36,12 @@ import pprint
 
 def eprint(*args, **kwargs):
   print(*args, file=sys.stderr, **kwargs)
+  sys.stderr.flush()
+
+def flprint(*args, **kwargs):
+  print(*args, **kwargs)
+  sys.stdout.flush()
+
 
 LOGFILE = '/run/sensors/sps30/last'
 
@@ -43,27 +49,38 @@ PIGPIO_HOST = '127.0.0.1'
 I2C_SLAVE = 0x69
 I2C_BUS = 1
 
-DEBUG = False
 DEBUG = True
+DEBUG = False
 
 deviceOnI2C = call("i2cdetect -y " + str(I2C_BUS) + " 0x69 0x69|grep '\--' -q", shell=True) # grep exits 0 if match found
 if deviceOnI2C:
-  print("I2Cdetect found SPS30")
+  flprint("I2Cdetect found SPS30")
 else:
-  print("SPS30 (0x69) not found on I2C bus")
+  flprint("SPS30 (0x69) not found on I2C bus")
   exit(1)
 
 def exit_gracefully(a,b):
-  print("exit")
+  flprint("exit gracefully...")
   stopMeasurement()
+  flprint("measurement stopped")
   os.path.isfile(LOGFILE) and os.access(LOGFILE, os.W_OK) and os.remove(LOGFILE)
+  flprint("sensor value files cleared")
   pi.i2c_close(h)
+  flprint("i2c handle closed, exit 0")
   exit(0)
+
+def exit_hard():
+  flprint("exiting hard...")
+  reset()
+  flprint("resetted")
+  os.path.isfile(LOGFILE) and os.access(LOGFILE, os.W_OK) and os.remove(LOGFILE)
+  flprint("sensor value files cleared")
+  pi.i2c_close(h)
+  flprint("i2c handle closed, exit 1")
+  exit(1)
 
 signal.signal(signal.SIGINT, exit_gracefully)
 signal.signal(signal.SIGTERM, exit_gracefully)
-
-
 
 pi = pigpio.pi(PIGPIO_HOST)
 if not pi.connected:
@@ -71,7 +88,7 @@ if not pi.connected:
   exit(1)
 else:
   if DEBUG:
-    print("connection to pigpio daemon successful")
+    flprint("connection to pigpio daemon successful")
 
 
 try:
@@ -155,7 +172,7 @@ def readArticleCode():
       acode += chr(currentByte) + '|'
     else:
       crcs += str(currentByte) + '.'
-  print('Article code: "' + acode + '"')
+  flprint('Article code: "' + acode + '"')
   return True
 
 def readSerialNr():
@@ -173,14 +190,16 @@ def readSerialNr():
       if i != 0:
         snr += '-'
       snr += chr(currentByte)
-  print('Serial number: ' + snr)
+  flprint('Serial number: ' + snr)
   return True
 
 def readCleaningInterval():
   data = readFromAddr(0x80,0x04,6)
   if data and len(data):
     interval = calcInteger(data)
-    print('cleaning interval:', str(interval), 's')
+    flprint('cleaning interval:', str(interval), 's')
+    return
+  eprint('cleaning interval could not be read')
 
 def startMeasurement():
   ret = -1
@@ -296,7 +315,7 @@ def initialize():
 def bigReset():
   global h
   if DEBUG:
-    print("bigReset.")
+    flprint("bigReset.")
   eprint('resetting...',end='')
   pi.i2c_close(h)
   time.sleep(0.5)
@@ -309,15 +328,13 @@ if len(sys.argv) > 1 and sys.argv[1] == "stop":
   exit_gracefully(False,False)
 
 if DEBUG:
-  print("readArticleCode")
+  flprint("readArticleCode")
 ret = readArticleCode()
 if ret == False:
   resetret = reset()
   if resetret == False:
     exit(1)
   readArticleCode()
-
-call(["mkdir", "-p", "/run/sensors/sps30"])
 
 #reset()
 #time.sleep(0.1) # note: needed after reset
@@ -326,6 +343,8 @@ readSerialNr()
 readCleaningInterval()
 
 initialize()
+
+call(["mkdir", "-p", "/run/sensors/sps30"])
 
 while True:
   ret = readDataReady()
