@@ -125,7 +125,7 @@ def readNBytes(n):
     (count, data) = pi.i2c_read_device(h, n)
   except:
     eprint("error: i2c_read failed")
-    exit(1)
+    exit_hard()
 
   if count == n:
     return data
@@ -157,6 +157,8 @@ def readFromAddr(LowB,HighB,nBytes):
   return False
 
 def readArticleCode():
+  if DEBUG:
+    flprint("readArticleCode")
   data = readFromAddr(0xD0,0x25,47)
   if data == False:
     eprint('readArticleCode failed')
@@ -217,23 +219,21 @@ def stopMeasurement():
 
 def reset():
   if DEBUG:
-    print("reset called")
+    flprint("reset called")
 
   waits = 0.1
   for i in range(15):
     ret = i2cWrite([0xd3, 0x04])
     if DEBUG:
-      print("reset sent")
+      flprint("reset sent")
     if ret == True:
       if DEBUG:
-        print("reset ok")
+        flprint("reset ok")
       return True
     eprint('reset unsuccessful, next try in', str(waits * i) + 's')
     time.sleep(waits * i)
   eprint('reset unsuccessful')
   return False
-
-
 
 def readDataReady():
   data = readFromAddr(0x02, 0x02,3)
@@ -242,11 +242,11 @@ def readDataReady():
     return -1
   if data and data[1]:
     if DEBUG:
-      print("✓")
+      flprint("✓")
     return 1
   else:
     if DEBUG:
-      print('.',end='')
+      flprint('.',end='')
     return 0
 
 def calcInteger(sixBArray):
@@ -294,12 +294,12 @@ def printPrometheus(data):
   logfilehandle.close()
 
 def printHuman(data):
-  print("pm0.5 count: %f" % calcFloat(data[24:30]))
-  print("pm1   count: {0:.3f} ug: {1:.3f}".format( calcFloat(data[30:36]), calcFloat(data) ) )
-  print("pm2.5 count: {0:.3f} ug: {1:.3f}".format( calcFloat(data[36:42]), calcFloat(data[6:12]) ) )
-  print("pm4   count: {0:.3f} ug: {1:.3f}".format( calcFloat(data[42:48]), calcFloat(data[12:18]) ) )
-  print("pm10  count: {0:.3f} ug: {1:.3f}".format( calcFloat(data[48:54]), calcFloat(data[18:24]) ) )
-  print("pm_typ: %f" % calcFloat(data[54:60]))
+  flprint("pm0.5 count: %f" % calcFloat(data[24:30]))
+  pflrint("pm1   count: {0:.3f} ug: {1:.3f}".format( calcFloat(data[30:36]), calcFloat(data) ) )
+  pflrint("pm2.5 count: {0:.3f} ug: {1:.3f}".format( calcFloat(data[36:42]), calcFloat(data[6:12]) ) )
+  pflrint("pm4   count: {0:.3f} ug: {1:.3f}".format( calcFloat(data[42:48]), calcFloat(data[12:18]) ) )
+  pflrint("pm10  count: {0:.3f} ug: {1:.3f}".format( calcFloat(data[48:54]), calcFloat(data[18:24]) ) )
+  pflrint("pm_typ: %f" % calcFloat(data[54:60]))
 
 
 def readPMValues():
@@ -309,7 +309,7 @@ def readPMValues():
   printPrometheus(data)
 
 def initialize():
-  startMeasurement() or exit(1)
+  startMeasurement() or exit_hard()
   time.sleep(0.9)
 
 def bigReset():
@@ -327,14 +327,12 @@ def bigReset():
 if len(sys.argv) > 1 and sys.argv[1] == "stop":
   exit_gracefully(False,False)
 
-if DEBUG:
-  flprint("readArticleCode")
 ret = readArticleCode()
 if ret == False:
   resetret = reset()
   if resetret == False:
-    exit(1)
-  readArticleCode()
+    exit_hard()
+  readArticleCode() or exit_hard()
 
 #reset()
 #time.sleep(0.1) # note: needed after reset
