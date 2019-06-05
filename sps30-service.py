@@ -52,11 +52,11 @@ I2C_BUS = 1
 DEBUG = True
 DEBUG = False
 
-deviceOnI2C = call("i2cdetect -y " + str(I2C_BUS) + " 0x69 0x69|grep '\--' -q", shell=True) # grep exits 0 if match found
+deviceOnI2C = call("i2cdetect -y " + str(I2C_BUS) + " " + hex(I2C_SLAVE) + " " + hex(I2C_SLAVE) +"|grep '\--' -q", shell=True) # grep exits 0 if match found
 if deviceOnI2C:
-  flprint("I2Cdetect found SPS30")
+  flprint("I2Cdetect found SPS30 ("+hex(I2C_SLAVE)+ ") on bus " + str(I2C_BUS))
 else:
-  flprint("SPS30 (0x69) not found on I2C bus")
+  flprint("SPS30 ("+hex(I2C_SLAVE)+ ") not found on I2C bus" + str(I2C_BUS))
   exit(1)
 
 def exit_gracefully(a,b):
