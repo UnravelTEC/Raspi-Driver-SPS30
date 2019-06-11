@@ -46,7 +46,7 @@ I2C_BUS = 0
 DEBUG = False
 DEBUG = True
 
-deviceOnI2C = call("i2cdetect -y 0 0x69 0x69|grep '\--' -q", shell=True) # grep exits 0 if match found
+deviceOnI2C = call("i2cdetect -y " + str(I2C_BUS) + " 0x69 0x69|grep '\--' -q", shell=True) # grep exits 0 if match found
 if deviceOnI2C:
   print("I2Cdetect found SPS30")
 else:
@@ -200,7 +200,7 @@ def reset():
   if DEBUG:
     print("reset called")
 
-  waits = 0.5
+  waits = 0.1
   for i in range(15):
     ret = i2cWrite([0xd3, 0x04])
     if DEBUG:
@@ -259,16 +259,16 @@ def printPrometheus(data):
       eprint(key + " == " + str(value) +" ; ignoring values")
       return
 
-  output_string = 'particulate_matter_ppcm3{{size="pm0.5",sensor="SPS30"}} {0:.8f}\n'.format( sensordata('pn05') )
-  output_string += 'particulate_matter_ppcm3{{size="pm1",sensor="SPS30"}} {0:.8f}\n'.format( sensordata('pn1') )
-  output_string += 'particulate_matter_ppcm3{{size="pm2.5",sensor="SPS30"}} {0:.8f}\n'.format( sensordata('pn25') )
-  output_string += 'particulate_matter_ppcm3{{size="pm4",sensor="SPS30"}} {0:.8f}\n'.format( sensordata('pn4') )
-  output_string += 'particulate_matter_ppcm3{{size="pm10",sensor="SPS30"}} {0:.8f}\n'.format( sensordata('pn10') )
-  output_string += 'particulate_matter_ugpm3{{size="pm1",sensor="SPS30"}} {0:.8f}\n'.format( sensordata('pm1') )
-  output_string += 'particulate_matter_ugpm3{{size="pm2.5",sensor="SPS30"}} {0:.8f}\n'.format( sensordata('pm25') )
-  output_string += 'particulate_matter_ugpm3{{size="pm4",sensor="SPS30"}} {0:.8f}\n'.format( sensordata('pm4') )
-  output_string += 'particulate_matter_ugpm3{{size="pm10",sensor="SPS30"}} {0:.8f}\n'.format( sensordata('pm10') )
-  output_string += 'particulate_matter_typpartsize_um{{sensor="SPS30"}} {0:.8f}\n'.format( sensordata('partsize') )
+  output_string = 'particulate_matter_ppcm3{{size="pm0.5",sensor="SPS30"}} {0:.8f}\n'.format( sensordata['pn05'] )
+  output_string += 'particulate_matter_ppcm3{{size="pm1",sensor="SPS30"}} {0:.8f}\n'.format( sensordata['pn1'] )
+  output_string += 'particulate_matter_ppcm3{{size="pm2.5",sensor="SPS30"}} {0:.8f}\n'.format( sensordata['pn25'] )
+  output_string += 'particulate_matter_ppcm3{{size="pm4",sensor="SPS30"}} {0:.8f}\n'.format( sensordata['pn4'] )
+  output_string += 'particulate_matter_ppcm3{{size="pm10",sensor="SPS30"}} {0:.8f}\n'.format( sensordata['pn10'] )
+  output_string += 'particulate_matter_ugpm3{{size="pm1",sensor="SPS30"}} {0:.8f}\n'.format( sensordata['pm1'] )
+  output_string += 'particulate_matter_ugpm3{{size="pm2.5",sensor="SPS30"}} {0:.8f}\n'.format( sensordata['pm25'] )
+  output_string += 'particulate_matter_ugpm3{{size="pm4",sensor="SPS30"}} {0:.8f}\n'.format( sensordata['pm4'] )
+  output_string += 'particulate_matter_ugpm3{{size="pm10",sensor="SPS30"}} {0:.8f}\n'.format( sensordata['pm10'] )
+  output_string += 'particulate_matter_typpartsize_um{{sensor="SPS30"}} {0:.8f}\n'.format( sensordata['partsize'] )
   # print(output_string)
   logfilehandle = open(LOGFILE, "w",1)
   logfilehandle.write(output_string)
