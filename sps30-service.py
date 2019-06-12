@@ -127,10 +127,23 @@ def readNBytes(n):
     eprint("error: i2c_read failed")
     exit_hard()
 
+  time.sleep(0.02)
+
   if count == n:
+    if n % 3 == 0:
+      DEBUG and flprint("multiple of 3 bytes read, calc checksum")
+      for i in range(int(n / 3)):
+        offset = i * 3
+        sent_crc = data[offset + 2]
+        calc_crc = calcCRC([data[offset + 0], data[offset + 1]])
+        if sent_crc == calc_crc:
+          DEBUG and flprint(str(i) + ": crc " + hex(sent_crc) + " of " + hex(data[offset + 0]) +" "+ hex(data[offset + 1]) + " OK")
+        else:
+          eprint(str(i) + ": crc " + hex(sent_crc) + " of " + hex(data[offset + 0]) +" "+ hex(data[offset + 1]) + " NOK, should be " + hex(calc_crc))
+          return False
     return data
   else:
-    eprint("error: read bytes didnt return " + str(n) + "B")
+    eprint("error: read bytes didnt return " + str(n) + " B, but " + str(count) + " B")
     return False
 
 # takes an array of bytes (integer-array)
@@ -140,7 +153,9 @@ def i2cWrite(data):
   except Exception as e:
     pprint.pprint(e)
     eprint("error in i2c_write:", e.__doc__ + ":",  e.value)
+    time.sleep(0.5)
     return -1
+  time.sleep(0.02)
   return True
 
 def readFromAddr(LowB,HighB,nBytes):
@@ -295,11 +310,11 @@ def printPrometheus(data):
 
 def printHuman(data):
   flprint("pm0.5 count: %f" % calcFloat(data[24:30]))
-  pflrint("pm1   count: {0:.3f} ug: {1:.3f}".format( calcFloat(data[30:36]), calcFloat(data) ) )
-  pflrint("pm2.5 count: {0:.3f} ug: {1:.3f}".format( calcFloat(data[36:42]), calcFloat(data[6:12]) ) )
-  pflrint("pm4   count: {0:.3f} ug: {1:.3f}".format( calcFloat(data[42:48]), calcFloat(data[12:18]) ) )
-  pflrint("pm10  count: {0:.3f} ug: {1:.3f}".format( calcFloat(data[48:54]), calcFloat(data[18:24]) ) )
-  pflrint("pm_typ: %f" % calcFloat(data[54:60]))
+  flprint("pm1   count: {0:.3f} ug: {1:.3f}".format( calcFloat(data[30:36]), calcFloat(data) ) )
+  flprint("pm2.5 count: {0:.3f} ug: {1:.3f}".format( calcFloat(data[36:42]), calcFloat(data[6:12]) ) )
+  flprint("pm4   count: {0:.3f} ug: {1:.3f}".format( calcFloat(data[42:48]), calcFloat(data[12:18]) ) )
+  flprint("pm10  count: {0:.3f} ug: {1:.3f}".format( calcFloat(data[48:54]), calcFloat(data[18:24]) ) )
+  flprint("pm_typ: %f" % calcFloat(data[54:60]))
 
 
 def readPMValues():
