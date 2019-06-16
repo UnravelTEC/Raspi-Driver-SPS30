@@ -1,5 +1,5 @@
 [Unit]
-Description=SPS30 particulate matter sensor
+Description=Sensirion SPS30 particulate matter sensor
 After=pigpiod.service
 Requires=pigpiod.service
 
