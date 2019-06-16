@@ -57,3 +57,7 @@ When running on a RPi 0W powered by a USB3.0 PC port, (4.8V resulting), the sens
 ## Data credibility
 
 data values in the first 15 seconds while the fan is spinning up are too high, recommended to ignore them.
+
+## Calculation of pm values
+
+The pm* values (µg/m³) are summed up - pm10 is every particle <10µm, pm4 is every particle <4µm, etc. If e.g. there are no particles > 2.5µm, pm2.5 - pm10 are the same.
