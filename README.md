@@ -9,23 +9,16 @@ Maximum I2C speed for SPS30 is 100kHz (Default on Raspbian).
 
 Recommended maximum I2C cable length 20cm.
 
-Sensor needs 5V, on I2C bus 3.3V is fine. Seems to work without external pull-ups on Raspberry Pi 3B+.
+Sensor needs 5V, on I2C bus 3.3V is fine. Seems to work without external pull-ups on Raspberry Pi 3B+ on i2c-1.
 
-### Python 
+### Pigpiod & Python
 
-Install the following python-libraries:
-
-```
-aptitude install python-crcmod
-```
-
-### Pigpiod
-
-As the SPS30 needs complex i2c-commands, the Linux standard i2c-dev doesn't work. A working alternative is pigpiod.
+As the SPS30 needs complex i2c-commands, the Linux standard i2c-dev doesn't work. A working alternative is pigpiod (we are using it through python).
 
 ```
-aptitude install pigpio python-pigpio
+aptitude install pigpio python-crcmod python-pigpio i2c-tools
 ```
+
 
 Atm, IPv6 doesn't work on Raspbian correctly with pigpiod, so:
 
