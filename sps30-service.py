@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 #
 # Copyright © 2018 UnravelTEC
@@ -19,15 +19,13 @@
 #
 # If you want to relicense this code under another license, please contact info+github@unraveltec.com.
 
-from __future__ import print_function
-
 # This module uses the services of the C pigpio library. pigpio must be running on the Pi(s) whose GPIO are to be manipulated. 
 # cmd ref: http://abyz.me.uk/rpi/pigpio/python.html#i2c_write_byte_data
-import pigpio # aptitude install python-pigpio
+import pigpio # aptitude install python3-pigpio
 import time
 import struct
 import sys
-import crcmod # aptitude install python-crcmod
+import crcmod # aptitude install python3-crcmod
 import os, signal
 from subprocess import call
 
@@ -75,8 +73,9 @@ else:
 try:
   pi.i2c_close(0)
 except:
-  if sys.exc_value and str(sys.exc_value) != "'unknown handle'":
-    eprint("Unknown error: ", sys.exc_type, ":", sys.exc_value)
+  tupl = sys.exc_info()
+  if tupl[1] and str(tupl[1]) != "'unknown handle'":
+    eprint("Unknown error: ", tupl)
 
 #try:
 h = pi.i2c_open(I2C_BUS, I2C_SLAVE)
@@ -97,7 +96,7 @@ f_crc8 = crcmod.mkCrcFun(0x131, 0xFF, False, 0x00)
 
 def calcCRC(TwoBdataArray):
   byteData = ''.join(chr(x) for x in TwoBdataArray)
-  return f_crc8(byteData)
+  return f_crc8(byteData.encode())
 
 # print(hex(calcCRC([0xBE,0xEF])))
 

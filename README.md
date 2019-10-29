@@ -16,7 +16,7 @@ Sensor needs 5V, on I2C bus 3.3V is fine. Seems to work without external pull-up
 As the SPS30 needs complex i2c-commands, the Linux standard i2c-dev doesn't work. A working alternative is pigpiod (we are using it through python).
 
 ```
-aptitude install pigpio python-crcmod python-pigpio i2c-tools
+aptitude install pigpio python3-crcmod python3-pigpio i2c-tools
 ```
 
 

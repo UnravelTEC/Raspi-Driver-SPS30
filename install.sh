@@ -21,6 +21,11 @@
 
 targetdir=/usr/local/bin/
 
+if [ ! "$1" ]; then
+  aptitude update
+  aptitude install pigpio python3-crcmod python3-pigpio i2c-tools
+fi
+
 mkdir -p $targetdir
 
 cp sps30-service.py $targetdir && echo "cp sps30-service.py $targetdir OK"
